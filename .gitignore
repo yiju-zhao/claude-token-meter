@@ -1,0 +1,9 @@
+# 本地密钥和登记数据，不要提交
+server/.env
+server/token-aliases.txt
+server/token-aliases.yaml
+
+*.bak.*
+.gstack/
+.DS_Store
+__pycache__/

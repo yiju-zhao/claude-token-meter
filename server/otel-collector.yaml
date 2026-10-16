@@ -1,0 +1,65 @@
+extensions:
+  # 客户端必须带 Authorization: Bearer <INGEST_TOKEN> 才能上报
+  bearertokenauth:
+    tokens:
+      - ${env:INGEST_TOKEN}
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        include_metadata: true
+        auth:
+          authenticator: bearertokenauth
+      http:
+        endpoint: 0.0.0.0:4318
+        include_metadata: true
+        auth:
+          authenticator: bearertokenauth
+
+processors:
+  # 客户端 helper 在请求头 x-claude-token-fp 里带上 setup-token 的指纹（sha256 前 12 位），写到每条事件上
+  attributes/token_fp:
+    actions:
+      - key: token.fp
+        from_context: metadata.x-claude-token-fp
+        action: upsert
+  filter/usage_only:
+    error_mode: ignore
+    logs:
+      log_record:
+        # 只保留计量事件（每次 API 请求 / 请求失败），提示词、回复、工具调用等事件一律不入库
+        - 'attributes["event.name"] != "api_request" and attributes["event.name"] != "api_error"'
+        # 只统计 setup-token 的用量：没有指纹（/login 登录的会话）一律丢弃
+        - 'attributes["token.fp"] == nil'
+        - 'not IsMatch(attributes["token.fp"], "^[0-9a-f]{12}$")'
+  transform/labels:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(resource.attributes["token.fp"], attributes["token.fp"])
+          - set(resource.attributes["user.name"], "unknown") where resource.attributes["user.name"] == nil
+          - set(resource.attributes["host.name"], "unknown") where resource.attributes["host.name"] == nil
+  # transform/token_alias 定义在 token-aliases.yaml（由 register-token.sh 生成）
+  batch: {}
+
+exporters:
+  otlp_http/loki:
+    endpoint: http://loki:3100/otlp
+  nop: {}
+
+service:
+  extensions: [bearertokenauth, health_check]
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [attributes/token_fp, filter/usage_only, transform/labels, transform/token_alias, batch]
+      exporters: [otlp_http/loki]
+    # 客户端如果也开了 metrics 上报，这里直接丢弃，避免客户端报错
+    metrics:
+      receivers: [otlp]
+      exporters: [nop]

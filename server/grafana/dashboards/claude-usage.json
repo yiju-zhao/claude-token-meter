@@ -1,0 +1,1574 @@
+{
+  "uid": "claude-usage",
+  "title": "Claude setup-token 用量",
+  "tags": [
+    "claude"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "timepicker": {
+    "refresh_intervals": [
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "1h"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "token",
+        "label": "Token",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "query": {
+          "type": 1,
+          "label": "token",
+          "stream": "{service_name=\"claude-code\"}",
+          "refId": "LokiVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values({service_name=\"claude-code\"},token)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "user",
+        "label": "使用人",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki"
+        },
+        "query": {
+          "type": 1,
+          "label": "user_name",
+          "stream": "{service_name=\"claude-code\"}",
+          "refId": "LokiVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values({service_name=\"claude-code\"},user_name)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "总览（所选时间范围）",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "请求数",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (count_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "总 Token",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 3,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap input_tokens | __error__=\"\" [$__range])) + sum (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap output_tokens | __error__=\"\" [$__range])) + sum (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_read_tokens | __error__=\"\" [$__range])) + sum (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_creation_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "description": "input + output + 缓存读 + 缓存写"
+    },
+    {
+      "type": "stat",
+      "title": "输出 Token",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 7,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap output_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "等价 API 费用",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 11,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cost_usd | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "noValue": "0",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "description": "按 API 标价折算的等价费用，订阅不按这个扣费，仅用于比较各账号/各人的用量大小。"
+    },
+    {
+      "type": "stat",
+      "title": "失败请求",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 15,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_error\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "description": "429 通常表示该 token 的订阅额度用完了；401 表示 token 失效"
+    },
+    {
+      "type": "stat",
+      "title": "活跃 Token",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(sum by (token) (count_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" [$__range])))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "stat",
+      "title": "活跃人数",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 21,
+        "y": 1,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(sum by (user_name) (count_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" [$__range])))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0"
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "按 Token",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "各 Token 用量（所选时间范围）",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (token, token_fp) (count_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (token, token_fp) (count_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_error\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "C",
+          "expr": "sum by (token, token_fp) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap input_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "D",
+          "expr": "sum by (token, token_fp) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap output_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "E",
+          "expr": "sum by (token, token_fp) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_read_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "F",
+          "expr": "sum by (token, token_fp) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_creation_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "G",
+          "expr": "sum by (token, token_fp) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap input_tokens | __error__=\"\" [$__range])) + sum by (token, token_fp) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap output_tokens | __error__=\"\" [$__range])) + sum by (token, token_fp) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_read_tokens | __error__=\"\" [$__range])) + sum by (token, token_fp) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_creation_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "H",
+          "expr": "sum by (token, token_fp) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cost_usd | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value #A": "请求数",
+              "Value #B": "失败请求",
+              "Value #C": "输入",
+              "Value #D": "输出",
+              "Value #E": "缓存读",
+              "Value #F": "缓存写",
+              "Value #G": "总 Token",
+              "Value #H": "等价费用",
+              "token": "Token",
+              "token_fp": "指纹"
+            },
+            "indexByName": {
+              "token": 0,
+              "token_fp": 1,
+              "Value #A": 2,
+              "Value #B": 3,
+              "Value #C": 4,
+              "Value #D": 5,
+              "Value #E": 6,
+              "Value #F": 7,
+              "Value #G": 8,
+              "Value #H": 9
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "等价费用",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "fields": [
+            "请求数",
+            "失败请求",
+            "输入",
+            "输出",
+            "缓存读",
+            "缓存写",
+            "总 Token",
+            "等价费用"
+          ],
+          "countRows": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0",
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "请求数"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "失败请求"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "输入"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "输出"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "缓存读"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "缓存写"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "总 Token"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "等价费用"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Token 列显示登记的别名，没登记的显示指纹（服务器上 ./register-token.sh 登记）。按 API 标价折算的等价费用，订阅不按这个扣费，仅用于比较各账号/各人的用量大小。"
+    },
+    {
+      "type": "table",
+      "title": "额度窗口参考（按 Token，截至所选时间范围的终点，不受时间范围影响）",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (token) (count_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" [5h]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap input_tokens | __error__=\"\" [5h])) + sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap output_tokens | __error__=\"\" [5h])) + sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_read_tokens | __error__=\"\" [5h])) + sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_creation_tokens | __error__=\"\" [5h]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "C",
+          "expr": "sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cost_usd | __error__=\"\" [5h]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "D",
+          "expr": "sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap input_tokens | __error__=\"\" [7d])) + sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap output_tokens | __error__=\"\" [7d])) + sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_read_tokens | __error__=\"\" [7d])) + sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_creation_tokens | __error__=\"\" [7d]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "E",
+          "expr": "sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cost_usd | __error__=\"\" [7d]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value #A": "近 5 小时请求",
+              "Value #B": "近 5 小时 Token",
+              "Value #C": "近 5 小时等价费用",
+              "Value #D": "近 7 天 Token",
+              "Value #E": "近 7 天等价费用",
+              "token": "Token"
+            },
+            "indexByName": {
+              "token": 0,
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #C": 3,
+              "Value #D": 4,
+              "Value #E": 5
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "近 5 小时等价费用",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "fields": [
+            "近 5 小时请求",
+            "近 5 小时 Token",
+            "近 5 小时等价费用",
+            "近 7 天 Token",
+            "近 7 天等价费用"
+          ],
+          "countRows": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0",
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "近 5 小时请求"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "近 5 小时 Token"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "近 5 小时等价费用"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "近 7 天 Token"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "近 7 天等价费用"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          }
+        ]
+      },
+      "description": "订阅额度按账号的 5 小时窗口和周窗口计算，官方不公开具体额度。同一个账号生成的多个 token 共用额度，需要把它们加起来，再和 claude.ai 设置 → 用量里的百分比对照。"
+    },
+    {
+      "type": "table",
+      "title": "失败请求明细（所选时间范围）",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (token, status_code, error) (count_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_error\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value #A": "次数",
+              "token": "Token",
+              "status_code": "状态码",
+              "error": "错误信息"
+            },
+            "indexByName": {
+              "token": 0,
+              "status_code": 1,
+              "error": 2,
+              "Value #A": 3
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "次数",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "fields": [
+            "次数"
+          ],
+          "countRows": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0",
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "次数"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          }
+        ]
+      },
+      "description": "429 = 额度或频率限制；401 = token 失效或被撤销；5xx = Anthropic 服务端错误"
+    },
+    {
+      "type": "timeseries",
+      "title": "Token 趋势（按 Token）",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap input_tokens | __error__=\"\" [$__auto])) + sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap output_tokens | __error__=\"\" [$__auto])) + sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_read_tokens | __error__=\"\" [$__auto])) + sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_creation_tokens | __error__=\"\" [$__auto]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "range",
+          "legendFormat": "{{token}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "barAlignment": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "等价费用趋势（按 Token）",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 27,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cost_usd | __error__=\"\" [$__auto]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "range",
+          "legendFormat": "{{token}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "barAlignment": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "title": "按使用人 / 机器",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "各使用人用量（所选时间范围）",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (user_name, host_name, token) (count_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (user_name, host_name, token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap output_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "C",
+          "expr": "sum by (user_name, host_name, token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap input_tokens | __error__=\"\" [$__range])) + sum by (user_name, host_name, token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap output_tokens | __error__=\"\" [$__range])) + sum by (user_name, host_name, token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_read_tokens | __error__=\"\" [$__range])) + sum by (user_name, host_name, token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_creation_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "D",
+          "expr": "sum by (user_name, host_name, token) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cost_usd | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value #A": "请求数",
+              "Value #B": "输出",
+              "Value #C": "总 Token",
+              "Value #D": "等价费用",
+              "user_name": "使用人",
+              "host_name": "机器",
+              "token": "Token"
+            },
+            "indexByName": {
+              "user_name": 0,
+              "host_name": 1,
+              "token": 2,
+              "Value #A": 3,
+              "Value #B": 4,
+              "Value #C": 5,
+              "Value #D": 6
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "等价费用",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "fields": [
+            "请求数",
+            "输出",
+            "总 Token",
+            "等价费用"
+          ],
+          "countRows": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0",
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "请求数"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "输出"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "总 Token"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "等价费用"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "请求数趋势（按使用人）",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 45,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (user_name) (count_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" [$__auto]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "range",
+          "legendFormat": "{{user_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "barAlignment": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "等价费用趋势（按使用人）",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 45,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (user_name) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cost_usd | __error__=\"\" [$__auto]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "range",
+          "legendFormat": "{{user_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "barAlignment": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "title": "按模型",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 53,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "各模型用量（所选时间范围）",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 54,
+        "w": 24,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (model) (count_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (model) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap input_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "C",
+          "expr": "sum by (model) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap output_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "D",
+          "expr": "sum by (model) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap input_tokens | __error__=\"\" [$__range])) + sum by (model) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap output_tokens | __error__=\"\" [$__range])) + sum by (model) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_read_tokens | __error__=\"\" [$__range])) + sum by (model) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cache_creation_tokens | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        },
+        {
+          "refId": "E",
+          "expr": "sum by (model) (sum_over_time({service_name=\"claude-code\", token=~\"$token\", user_name=~\"$user\"} | event_name=\"api_request\" | unwrap cost_usd | __error__=\"\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "queryType": "instant"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value #A": "请求数",
+              "Value #B": "输入",
+              "Value #C": "输出",
+              "Value #D": "总 Token",
+              "Value #E": "等价费用",
+              "model": "模型"
+            },
+            "indexByName": {
+              "model": 0,
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #C": 3,
+              "Value #D": 4,
+              "Value #E": 5
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "等价费用",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "fields": [
+            "请求数",
+            "输入",
+            "输出",
+            "总 Token",
+            "等价费用"
+          ],
+          "countRows": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0",
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "请求数"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "输入"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "输出"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "总 Token"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "等价费用"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

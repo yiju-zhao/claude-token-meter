@@ -1,0 +1,44 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+  log_level: warn
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  allow_structured_metadata: true
+  # 允许查一年的数据（默认只能查 30 天）
+  max_query_length: 8760h
+  max_query_lookback: 8760h
+  reject_old_samples_max_age: 168h
+  otlp_config:
+    resource_attributes:
+      attributes_config:
+        # 这两个是客户端在 OTEL_RESOURCE_ATTRIBUTES 里设置的，提升为索引标签便于筛选
+        - action: index_label
+          attributes: [token, token.fp, user.name, host.name]
+
+analytics:
+  reporting_enabled: false
