@@ -16,6 +16,26 @@ Loki 存储 → Grafana 看板
 - **服务器上永远看不到 token**：只有指纹和你登记的别名。提示词、回复正文、工具调用一律不入库，只保留每次 API 请求的计量事件。
 - 每次 API 调用记一条，数字是逐条累加的，精确。
 
+> 注意：按 Anthropic 条款，Pro / Max 订阅账号及其 token 只能账号本人使用。本工具只做用量统计，不提供 token 共享或分发。
+
+## 两种用法
+
+同一套代码，区别只在客户端的上报地址填什么。
+
+**本机自用**：服务端和客户端在同一台电脑上，只统计这台电脑的用量。
+
+```bash
+git clone https://github.com/yiju-zhao/claude-token-meter.git
+cd claude-token-meter
+server/init.sh
+client/setup-client.sh --server http://localhost:4318 \
+  --key "$(grep '^INGEST_TOKEN=' server/.env | cut -d= -f2)" --user 我
+```
+
+然后打开 http://localhost:3000 查看看板。用 Claude Code 的时候 Docker 要处于运行状态，否则那段时间的用量会丢失。
+
+**多机部署**：服务端部署在一台所有机器都能访问的服务器上，每台客户端机器都运行一次 `setup-client.sh`，`--server` 填服务器地址。下面的步骤按这种用法来写。
+
 ## 一、部署服务端
 
 需要一台**常开**、所有客户端都能访问到 4318 端口的机器，不一定要在公网。如果人都在一个局域网，放局域网里就行；人在各地，可以用 Tailscale / WireGuard 组网，或者用云服务器加 HTTPS。
